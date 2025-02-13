@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kannan Kutty - AI Chatbot</title>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        #chat-container {
+            width: 450px;
+            background: #fff;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        #chat-header {
+            background: #007bff;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #chat-header button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #chat-header button:hover {
+            opacity: 0.8;
+        }
+        #messages {
+            height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+            background: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .message {
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+        }
+        .user, .bot {
+            max-width: 75%;
+            padding: 10px 15px;
+            border-radius: 15px;
+            position: relative;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .user {
+            background: #007bff;
+            color: white;
+            align-self: flex-end;
+        }
+        .bot {
+            background: #e0e0e0;
+            color: black;
+            align-self: flex-start;
+        }
+        .pfp {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        #input-container {
+            display: flex;
+            padding: 10px;
+            background: white;
+            border-top: 1px solid #ddd;
+            gap: 10px;
+        }
+        #user-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+            outline: none;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        #typing-indicator {
+            display: none;
+            padding: 10px;
+            font-style: italic;
+            color: #666;
+            text-align: center;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .imgs{
+          width: 60px;
+          height: 60px;
+          border-radius: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <div id="chat-header">
+            Kannan Kutty - <img class="imgs" src="https://media-tir3-3.cdn.whatsapp.net/v/t61.24694-24/466673267_1262246351646111_169897879899630609_n.jpg?ccb=11-4&oh=01_Q5AaIFuZHm-6Bp1p7qtx5dcwxS57b23GUNrIe79wn40YlylQ&oe=67BB0799&_nc_sid=5e03e0&_nc_cat=100" alt="">
+            <button onclick="clearChat()">Clear Chat</button>
+        </div>
+        <div id="messages"></div>
+        <div id="typing-indicator">Kannan Kutty is typing...</div>
+        <div id="input-container">
+            <input type="text" id="user-input" placeholder="Type a message...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const apiKey = 'AIzaSyCDxKXkSgJBHImyHa8pSo4s4MbWWvG5-os';
+        const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + apiKey;
+        const messagesDiv = document.getElementById('messages');
+        const userInput = document.getElementById('user-input');
+        const typingIndicator = document.getElementById('typing-indicator');
+
+        // Load chat history from local storage
+        let chatHistory = JSON.parse(localStorage.getItem('chatHistory')) || [];
+        chatHistory.forEach(msg => displayMessage(msg.sender, msg.message, msg.type));
+
+        async function sendMessage() {
+            const userMessage = userInput.value.trim();
+            if (!userMessage) return;
+
+            displayMessage('You', userMessage, 'user');
+            userInput.value = '';
+            typingIndicator.style.display = 'block';
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        contents: [{ 
+                            parts: [{ text: userMessage }] 
+                        }]
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to fetch response from API');
+
+                const data = await response.json();
+                const botResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I didn't understand that.";
+                displayMessage('Kannan Kutty', botResponse, 'bot');
+            } catch (error) {
+                displayMessage('Error', error.message, 'bot');
+            } finally {
+                typingIndicator.style.display = 'none';
+            }
+        }
+
+        function displayMessage(sender, message, type) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message');
+
+            const pfp = document.createElement('img');
+            pfp.src = type === 'user' 
+                ? 'https://i.pinimg.com/736x/52/e4/39/52e439cf0deaf1f1f0fec01078bf63f2.jpg' 
+                : 'https://media-tir3-3.cdn.whatsapp.net/v/t61.24694-24/466673267_1262246351646111_169897879899630609_n.jpg?ccb=11-4&oh=01_Q5AaIFuZHm-6Bp1p7qtx5dcwxS57b23GUNrIe79wn40YlylQ&oe=67BB0799&_nc_sid=5e03e0&_nc_cat=100';
+            pfp.classList.add('pfp');
+
+            const textElement = document.createElement('div');
+            textElement.classList.add(type);
+            textElement.textContent = message;
+
+            if (type === 'user') {
+                messageElement.appendChild(textElement);
+                messageElement.appendChild(pfp);
+            } else {
+                messageElement.appendChild(pfp);
+                messageElement.appendChild(textElement);
+            }
+
+            messagesDiv.appendChild(messageElement);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            // Save message to chat history
+            chatHistory.push({ sender, message, type });
+            localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+        }
+
+        function clearChat() {
+            messagesDiv.innerHTML = '';
+            chatHistory = [];
+            localStorage.removeItem('chatHistory');
+        }
+
+        // Allow sending message with Enter key
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+</html>
